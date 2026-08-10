@@ -1,0 +1,12 @@
+# Core dependencies (the simulator + policies + tiering run on these alone).
+numpy>=1.26
+
+# --- Optional extras (uncomment what you need) ---
+# GPU host<->device copy + FP8 packing (no CUDA required to import):
+# torch>=2.1
+# Triton FP8 gather+pack kernel (needs a CUDA GPU + matching triton):
+# triton>=2.1
+# vLLM out-of-tree KVConnector (integration target for real serving):
+# vllm>=0.5
+# Dev / CI:
+# pytest>=7 pytest-cov ruff

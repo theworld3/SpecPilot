@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentcache"
+version = "0.1.0"
+description = "Agent-aware KV cache retention for multi-turn LLM agent serving"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "AgentCache contributors" }]
+keywords = [
+    "llm",
+    "kv-cache",
+    "inference-serving",
+    "agent",
+    "multi-turn",
+    "eviction",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    # Core is pure stdlib. These are only needed for the optional GPU/trace
+    # extras. Kept light on purpose so the simulator installs in seconds.
+    "numpy>=1.21; python_version<'3.12'",
+    "numpy>=1.26; python_version>='3.12'",
+]
+
+[project.optional-dependencies]
+# Real host<->device copy + FP8 packing. Torch-only, no CUDA needed to import.
+gpu = ["torch>=2.1"]
+# Triton FP8 gather+pack kernel (requires a CUDA GPU + matching Triton).
+kernel = ["torch>=2.1", "triton>=2.1"]
+# vLLM out-of-tree connector (integration target, not required to run the sim).
+serving = ["torch>=2.1", "vllm>=0.5"]
+# Dev / CI tooling.
+dev = ["pytest>=7", "pytest-cov", "ruff"]
+# Reproduce the README numbers + generate synthetic traces.
+bench = ["numpy", "pytest"]
+
+[project.urls]
+Homepage = "https://github.com/agentcache/agentcache"
+Documentation = "https://github.com/agentcache/agentcache/blob/main/docs/design.md"
+Repository = "https://github.com/agentcache/agentcache"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agentcache = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = [
+    "E501",  # long docstrings / tables are fine
+    # The repo targets Python 3.9 and uses `from __future__ import
+    # annotations` + the `typing` module on purpose; these UP rules flag the
+    # exactly-intentional style.
+    "UP006",
+    "UP035",
+    "UP045",
+    "B027",  # base-class no-op hooks with docstrings are intentional
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
