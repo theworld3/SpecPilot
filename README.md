@@ -2,7 +2,6 @@
 
 > Agent-aware KV-cache retention for multi-turn LLM agent serving.
 
-[![CI](https://github.com/agentcache/agentcache/actions/workflows/ci.yml/badge.svg)](https://github.com/agentcache/agentcache/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
