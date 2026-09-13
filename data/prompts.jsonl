@@ -1,0 +1,9 @@
+{"prompt":"Explain why speculative decoding can lose throughput at high concurrency."}
+{"prompt":"Write a Python function that merges two sorted integer lists."}
+{"prompt":"A train travels 120 km in 90 minutes. What is its average speed in km/h? Show the calculation."}
+{"prompt":"Summarize the difference between latency, throughput, and goodput in an online inference service."}
+{"prompt":"Implement an LRU cache with O(1) get and put operations."}
+{"prompt":"Give three invariants that a paged KV cache must preserve after speculative-token rejection."}
+{"prompt":"Solve: if 3x + 7 = 31, find x and verify the answer."}
+{"prompt":"Describe a safe rollout plan for a new LLM serving scheduler policy."}
+

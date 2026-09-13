@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "specpilot-vllm"
+version = "0.1.0"
+description = "Goodput-aware online speculative-depth control for EAGLE-3"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "SpecPilot contributors" }]
+dependencies = ["numpy>=1.24"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6"]
+quality = ["scipy>=1.10"]
+gpu = ["httpx>=0.27"]
+
+[project.scripts]
+specpilot = "specpilot.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["specpilot"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["specpilot"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+

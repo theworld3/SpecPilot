@@ -1,0 +1,23 @@
+{
+  "run_id": "REPLACE_ME",
+  "created_at_utc": "REPLACE_ME",
+  "git_commit": "REPLACE_ME",
+  "vllm_commit": "da8ec2826898d47bd2fb424bc607052a6dc515c1",
+  "container_digest": "REPLACE_ME",
+  "gpu": "REPLACE_ME",
+  "gpu_count": 1,
+  "driver": "REPLACE_ME",
+  "cuda": "REPLACE_ME",
+  "target_model": "Qwen/Qwen3-8B",
+  "target_revision": "REPLACE_ME",
+  "draft_model": "RedHatAI/Qwen3-8B-speculator.eagle3",
+  "draft_revision": "REPLACE_ME",
+  "dtype": "bfloat16",
+  "dataset": "REPLACE_ME",
+  "sampling": {
+    "temperature": 0.0,
+    "max_tokens": 256
+  },
+  "notes": "Do not publish a run until every REPLACE_ME field is resolved."
+}
+

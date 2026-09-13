@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="250" viewBox="0 0 1120 250">
+  <style>
+    .box { fill:#f7f8fa; stroke:#24292f; stroke-width:1.5; rx:10; }
+    .accent { fill:#ddf4ff; stroke:#0969da; stroke-width:2; rx:10; }
+    .text { font:15px system-ui, sans-serif; fill:#24292f; text-anchor:middle; }
+    .small { font:12px system-ui, sans-serif; fill:#57606a; text-anchor:middle; }
+    .arrow { stroke:#57606a; stroke-width:2; marker-end:url(#arrow); fill:none; }
+  </style>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#57606a"/></marker></defs>
+  <rect class="box" x="20" y="70" width="150" height="80"/>
+  <text class="text" x="95" y="102">Scheduler</text><text class="small" x="95" y="126">decode batch B</text>
+  <rect class="accent" x="210" y="70" width="170" height="80"/>
+  <text class="text" x="295" y="102">Controller</text><text class="small" x="295" y="126">stale stats → K</text>
+  <rect class="box" x="420" y="70" width="160" height="80"/>
+  <text class="text" x="500" y="102">EAGLE-3</text><text class="small" x="500" y="126">draft [B, K]</text>
+  <rect class="box" x="620" y="70" width="160" height="80"/>
+  <text class="text" x="700" y="102">Target verify</text><text class="small" x="700" y="126">≈ B×(K+1)</text>
+  <rect class="box" x="820" y="70" width="130" height="80"/>
+  <text class="text" x="885" y="102">Commit</text><text class="small" x="885" y="126">A+1 tokens</text>
+  <rect class="accent" x="990" y="70" width="110" height="80"/>
+  <text class="text" x="1045" y="102">Observe</text><text class="small" x="1045" y="126">survival</text>
+  <path class="arrow" d="M170 110 H205"/><path class="arrow" d="M380 110 H415"/><path class="arrow" d="M580 110 H615"/><path class="arrow" d="M780 110 H815"/><path class="arrow" d="M950 110 H985"/>
+  <path class="arrow" d="M1045 155 V215 H295 V155"/>
+  <text class="small" x="670" y="235">completed host-side statistics; one-round feedback delay, no new D2H sync</text>
+</svg>
+

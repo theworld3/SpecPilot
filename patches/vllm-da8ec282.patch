@@ -1,0 +1,135 @@
+diff --git a/vllm/config/speculative.py b/vllm/config/speculative.py
+index 000000000..111111111 100644
+--- a/vllm/config/speculative.py
++++ b/vllm/config/speculative.py
+@@ -481,6 +481,14 @@ class SpeculativeConfig(BaseModel):
+     inclusive batch-size range.
+     """
+ 
++    dynamic_depth: dict[str, Any] | None = None
++    """Experimental EAGLE-3 online Goodput controller.
++
++    ``policy`` is ``online_goodput`` or ``shadow_goodput`` and
++    ``profile_path`` points at a SpecPilot B x K cost profile. The configured
++    ``num_speculative_tokens`` remains the maximum depth.
++    """
++
+     # params generated in the post-init stage
+     draft_model_config: SkipValidation[ModelConfig] = None  # type: ignore
+     """The configuration of the draft model initialized internal."""
+@@ -1725,6 +1733,22 @@ class SpeculativeConfig(BaseModel):
+                 f"than zero ({self.num_speculative_tokens})."
+             )
+ 
++        if self.dynamic_depth is not None:
++            if self.method != "eagle3":
++                raise ValueError("dynamic_depth currently requires method='eagle3'")
++            if self.num_speculative_tokens_per_batch_size is not None:
++                raise ValueError(
++                    "dynamic_depth and num_speculative_tokens_per_batch_size "
++                    "are mutually exclusive"
++                )
++            policy = self.dynamic_depth.get("policy", "online_goodput")
++            if policy not in ("online_goodput", "shadow_goodput"):
++                raise ValueError(f"unsupported dynamic_depth policy: {policy}")
++            if not self.dynamic_depth.get("profile_path"):
++                raise ValueError(
++                    "dynamic_depth requires a non-empty profile_path"
++                )
++
+         if self.rejection_sample_method == "synthetic":
+             # Consolidate to per-position rates
+             self.synthetic_acceptance_rates = self._resolve_synthetic_acceptance_rates(
+@@ -1854,8 +1876,11 @@ class SpeculativeConfig(BaseModel):
+     def use_dspark(self) -> bool:
+         return self.method == "dspark"
+ 
+     def uses_dynamic_speculative_decoding(self) -> bool:
+-        return self.num_speculative_tokens_per_batch_size is not None
++        return (
++            self.num_speculative_tokens_per_batch_size is not None
++            or self.dynamic_depth is not None
++        )
+ 
+     def uses_draft_model(self) -> bool:
+         return self.method == "draft_model"
+diff --git a/vllm/v1/core/sched/scheduler.py b/vllm/v1/core/sched/scheduler.py
+index 222222222..333333333 100644
+--- a/vllm/v1/core/sched/scheduler.py
++++ b/vllm/v1/core/sched/scheduler.py
+@@ -7,6 +7,8 @@ from collections.abc import Iterable
+ from dataclasses import replace
+ from typing import Any
+ 
++from specpilot.vllm_bridge import SchedulerControllerBridge
++
+ from vllm.compilation.cuda_graph import CUDAGraphStat
+ from vllm.config import KVEventsConfig, VllmConfig
+ from vllm.distributed.ec_transfer.ec_connector.base import (
+@@ -266,6 +268,7 @@ class Scheduler(SchedulerInterface):
+         # reserve between a chunk boundary and the prefill end.
+         self.num_prefill_lookahead = 0
+         self.dynamic_sd_lookup: list[int] | None = None
++        self.goodput_controller: SchedulerControllerBridge | None = None
+         if speculative_config is not None:
+             if speculative_config.num_speculative_tokens_per_batch_size:
+                 self.dynamic_sd_lookup = build_dynamic_sd_schedule_lookup(
+@@ -273,6 +276,11 @@ class Scheduler(SchedulerInterface):
+                     vllm_max_batch_size=self.scheduler_config.max_num_seqs,
+                     vllm_num_speculative_tokens=self.num_spec_tokens,
+                 )
++            if speculative_config.dynamic_depth is not None:
++                self.goodput_controller = SchedulerControllerBridge.from_config(
++                    speculative_config.dynamic_depth,
++                    k_max=self.num_spec_tokens,
++                )
+             self.use_eagle = speculative_config.use_eagle()
+             if self.use_eagle:
+                 self.num_prefill_lookahead = (
+@@ -1329,6 +1337,10 @@ class Scheduler(SchedulerInterface):
+             num_spec_tokens_to_schedule = self.dynamic_sd_lookup[
+                 len(num_scheduled_tokens)
+             ]
++        elif self.goodput_controller is not None and len(num_scheduled_tokens) > 0:
++            num_spec_tokens_to_schedule = self.goodput_controller.choose(
++                len(num_scheduled_tokens)
++            )
+ 
+         scheduled_encoder_input_stats = None
+         if (
+@@ -1870,7 +1882,9 @@ class Scheduler(SchedulerInterface):
+         # the below loop can be a performance bottleneck. We should do our best
+         # to avoid expensive operations inside the loop.
+         stopped_running_reqs: set[Request] = set()
+         stopped_preempted_reqs: set[Request] = set()
++        goodput_accepted: list[int] = []
++        goodput_proposed: list[int] = []
+         for req_id, num_tokens_scheduled in num_scheduled_tokens.items():
+             assert num_tokens_scheduled > 0
+             request = self.requests.get(req_id)
+@@ -1914,6 +1928,10 @@ class Scheduler(SchedulerInterface):
+                 num_sampled = self.num_sampled_tokens_per_step
+                 num_accepted = max(len(generated_token_ids) - num_sampled, 0)
+                 num_rejected = num_draft_tokens - num_accepted
++                if self.goodput_controller is not None and not output_is_stale:
++                    goodput_accepted.append(num_accepted)
++                    goodput_proposed.append(num_draft_tokens)
++
+                 # Rejections roll back num_computed_tokens (and, under async
+                 # scheduling, num_output_placeholders, which covers the spec
+                 # tokens). A stale rejection count predates the preemption
+@@ -2123,6 +2141,14 @@ class Scheduler(SchedulerInterface):
+                 # Invariant: EngineCore returns no partial prefill outputs.
+                 assert not prompt_logprobs_tensors
+ 
++        if self.goodput_controller is not None and goodput_accepted:
++            # These values are already host-side scheduler data. No new D2H
++            # transfer or device synchronization is introduced here.
++            self.goodput_controller.observe(
++                accepted_per_request=goodput_accepted,
++                proposed_per_request=goodput_proposed,
++            )
++
+         # Remove the stopped requests from the running and waiting queues.
+         if stopped_running_reqs:
+             self.running = remove_all(self.running, stopped_running_reqs)

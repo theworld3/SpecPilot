@@ -1,0 +1,14 @@
+{
+  "method": "eagle3",
+  "model": "RedHatAI/Qwen3-8B-speculator.eagle3",
+  "num_speculative_tokens": 5,
+  "dynamic_depth": {
+    "policy": "online_goodput",
+    "ewma_beta": 0.1,
+    "min_gain": 0.03,
+    "min_dwell_steps": 4,
+    "explore_interval": 64,
+    "profile_path": "profiles/local_h100_qwen3_8b.json"
+  }
+}
+
